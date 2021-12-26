@@ -1,0 +1,17 @@
+const Game = require('../bowling.js');
+
+test('test gutter game', () => {
+    const game = new Game();
+    for (let i = 0; i < 20; i++) {
+        game.roll(0);
+    }
+    expect(game.score()).toBe(0);
+});
+
+test('test all ones', () => {
+    const game = new Game();
+    for (let i = 0; i < 20; i++) {
+        game.roll(1);
+    }
+    expect(game.score()).toBe(20);
+});
