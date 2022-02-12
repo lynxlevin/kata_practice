@@ -1,65 +1,54 @@
-use std::error::Error;
-use std::fs::File;
-use std::io::prelude::*;
-extern crate quick_csv;
+mod address;
+mod address_book;
+use crate::address::address::Address;
+use crate::address_book::address_book::AddressBook;
+use quick_csv::Csv;
 
-fn parse_csv(data: &str) -> quick_csv::Csv<&[u8]> {
-    let mut csv = quick_csv::Csv::from_string(data);
-
-    csv
-}
-
-fn read_file_to_string(file_path: &str) -> Result<String, Box<dyn Error>> {
-    let mut file = File::open(file_path)?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-    Ok(contents)
+fn parse_csv(file_path: &str) -> AddressBook {
+    let csv = Csv::from_file("addresses/address.csv").unwrap();
+    let csv = csv.has_header(true);
+    let mut address_book = AddressBook::new();
+    for row in csv.into_iter() {
+        let row = row.unwrap();
+        if let Ok(mut columns) = row.columns() {
+            let address = Address::new(
+                columns.next().unwrap(),
+                columns.next().unwrap().trim(),
+                columns.next().unwrap().trim(),
+                columns.next().unwrap().trim(),
+            );
+            address_book.add(address);
+        }
+    }
+    address_book
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    fn create_address_book() -> AddressBook {
+        let mut address_book = AddressBook::new();
+        address_book.add(Address::new(
+            "Doe",
+            "John",
+            "1982/10/08",
+            "john.doe@foobar.com",
+        ));
+        address_book.add(Address::new(
+            "Ann",
+            "Mary",
+            "1975/09/11",
+            "mary.ann@foobar.com",
+        ));
+        address_book
+    }
+
     #[test]
     fn test_parse_csv() {
-        let result = match read_file_to_string("addresses/address.csv") {
-            Ok(string) => string,
-            Err(err) => err.to_string(),
-        };
-        let mut csv = parse_csv(&result);
+        let result = parse_csv("addresses/address.csv");
 
-        let row = csv.next().unwrap().unwrap();
-
-        if let Ok((col1, col2, col3, col4)) = row.decode::<(String, String, String, String)>() {
-            println!(
-                "col1: {}, col2: {}, col3: {}, col4: {}",
-                col1, col2, col3, col4
-            );
-        }
-        println!("hellohello");
-        assert_eq!("hi", "");
-    }
-
-    #[test]
-    fn test_read_file_to_string_ok() {
-        let result = match read_file_to_string("addresses/address.csv") {
-            Ok(string) => string,
-            Err(err) => err.to_string(),
-        };
-        assert_eq!(
-            result,
-            "last_name, first_name, date_of_birth, email
-Doe, John, 1982/10/08, john.doe@foobar.com
-Ann, Mary, 1975/09/11, mary.ann@foobar.com"
-        );
-    }
-
-    #[test]
-    fn test_read_file_to_string_err() {
-        let result = match read_file_to_string("addresses/addre.csv") {
-            Ok(string) => string,
-            Err(err) => err.to_string(),
-        };
-        assert_eq!(result, "No such file or directory (os error 2)");
+        let address_book = create_address_book();
+        assert_eq!(result, address_book);
     }
 }
